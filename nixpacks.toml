@@ -1,5 +1,2 @@
-[phases.setup]
-nixPkgs = ["python312", "chromium"]
-
 [phases.install]
-cmds = ["pip3 install -r requirements.txt"]
+cmds = ["python3 -m pip install -r requirements.txt"]
