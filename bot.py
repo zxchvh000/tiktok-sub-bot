@@ -28,9 +28,9 @@ def is_allowed(message: Message) -> bool:
     uid = message.from_user.id
     if uid in LOGGED_IN_USERS:
         return True
-    if not config.ALLOWED_USERS:
-        return True
-    return uid in config.ALLOWED_USERS
+    if config.ALLOWED_USERS:
+        return uid in config.ALLOWED_USERS
+    return False
 
 
 @router.message(CommandStart())
@@ -41,6 +41,7 @@ async def cmd_start(message: Message):
         "<b>TikTok Subscribe Bot</b>\n\n"
         "Команды:\n"
         "/sub &lt;ссылка&gt; — подписка всеми аккаунтами\n"
+        "/list — список аккаунтов\n"
         "/register &lt;email&gt; &lt;пароль&gt; — регистрация\n"
         "/login &lt;email&gt; &lt;пароль&gt; — вход\n"
         "/logout — выход\n"
@@ -97,6 +98,19 @@ async def cmd_logout(message: Message):
         await message.answer("✅ Вы вышли из аккаунта.")
     else:
         await message.answer("Вы не были в системе.")
+
+
+@router.message(Command("list"))
+async def cmd_list(message: Message):
+    if not is_allowed(message):
+        return await message.answer("Нет доступа.")
+    accounts = db.get_all_accounts()
+    if not accounts:
+        return await message.answer("Нет сохранённых аккаунтов.")
+    lines = [f"<b>Аккаунты ({len(accounts)}):</b>"]
+    for acc in accounts:
+        lines.append(f"  • <code>@{acc['username']}</code>")
+    await message.answer("\n".join(lines))
 
 
 @router.message(Command("sub"))
