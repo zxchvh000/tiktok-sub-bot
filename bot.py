@@ -11,7 +11,7 @@ from aiogram.client.default import DefaultBotProperties
 
 import config
 import db
-from tiktok import extract_username, subscribe_with_all_accounts
+from tiktok import extract_username, subscribe_with_all_accounts, login_to_tiktok
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +41,7 @@ async def cmd_start(message: Message):
         "<b>TikTok Subscribe Bot</b>\n\n"
         "Команды:\n"
         "/sub &lt;ссылка&gt; — подписка всеми аккаунтами\n"
+        "/addtiktok email пароль — добавить TikTok аккаунт\n"
         "/list — список аккаунтов\n"
         "/register &lt;email&gt; &lt;пароль&gt; — регистрация\n"
         "/login &lt;email&gt; &lt;пароль&gt; — вход\n"
@@ -118,6 +119,29 @@ async def cmd_list(message: Message):
     if not lines:
         return await message.answer("Нет данных.")
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("addtiktok"))
+async def cmd_addtiktok(message: Message):
+    if not is_allowed(message):
+        return await message.answer("Нет доступа.")
+    parts = message.text.split(maxsplit=2)
+    if len(parts) < 3:
+        return await message.answer(
+            "Формат: /addtiktok email пароль\n"
+            "Пример: /addtiktok user@mail.ru mypass123"
+        )
+    email = parts[1].strip()
+    password = parts[2].strip()
+
+    await message.answer("⏳ Открываю TikTok, вхожу в аккаунт...")
+
+    ok, msg, username, cookies, ua = await login_to_tiktok(email, password)
+    if not ok:
+        return await message.answer(f"❌ {msg}")
+
+    db.add_account(username, cookies, ua)
+    await message.answer(f"✅ {msg}\nАккаунт: <code>@{username}</code>")
 
 
 @router.message(Command("sub"))

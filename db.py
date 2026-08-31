@@ -41,12 +41,13 @@ def init_db():
         """)
 
 
-def add_account(username: str, cookies: list, user_agent: str) -> bool:
+def add_account(username: str, cookies, user_agent: str) -> bool:
     try:
+        cookies_str = cookies if isinstance(cookies, str) else json.dumps(cookies)
         with _get_conn() as conn:
             conn.execute(
                 "INSERT INTO accounts (username, cookies, user_agent) VALUES (?, ?, ?)",
-                (username, json.dumps(cookies), user_agent),
+                (username, cookies_str, user_agent),
             )
         return True
     except sqlite3.IntegrityError:
