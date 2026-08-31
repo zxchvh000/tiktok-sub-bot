@@ -104,12 +104,19 @@ async def cmd_logout(message: Message):
 async def cmd_list(message: Message):
     if not is_allowed(message):
         return await message.answer("Нет доступа.")
+    users = db.get_all_users()
     accounts = db.get_all_accounts()
-    if not accounts:
-        return await message.answer("Нет сохранённых аккаунтов.")
-    lines = [f"<b>Аккаунты ({len(accounts)}):</b>"]
-    for acc in accounts:
-        lines.append(f"  • <code>@{acc['username']}</code>")
+    lines = []
+    if users:
+        lines.append(f"<b>Пользователи ({len(users)}):</b>")
+        for u in users:
+            lines.append(f"  • <code>{u['email']}</code> (tg_id: {u['telegram_id']})")
+    if accounts:
+        lines.append(f"<b>TikTok аккаунты ({len(accounts)}):</b>")
+        for acc in accounts:
+            lines.append(f"  • <code>@{acc['username']}</code>")
+    if not lines:
+        return await message.answer("Нет данных.")
     await message.answer("\n".join(lines))
 
 

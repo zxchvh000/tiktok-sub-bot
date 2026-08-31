@@ -114,3 +114,12 @@ def get_user_by_email(email: str) -> Optional[dict]:
     if row:
         return {"id": row["id"], "email": row["email"], "telegram_id": row["telegram_id"]}
     return None
+
+
+def get_all_users() -> list[dict]:
+    with _get_conn() as conn:
+        rows = conn.execute("SELECT id, email, telegram_id, created_at FROM users").fetchall()
+    return [
+        {"id": r["id"], "email": r["email"], "telegram_id": r["telegram_id"], "created_at": r["created_at"]}
+        for r in rows
+    ]
