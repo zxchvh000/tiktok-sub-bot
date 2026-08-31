@@ -22,18 +22,23 @@ router = Router()
 dp.include_router(router)
 
 WAITING_COOKIES: dict[int, dict] = {}
+LOGGED_IN_USERS: set[int] = set()
+WAITING_AUTH: dict[int, dict] = {}
 
 
 def is_allowed(message: Message) -> bool:
+    uid = message.from_user.id
+    if uid in LOGGED_IN_USERS:
+        return True
     if not config.ALLOWED_USERS:
         return True
-    return message.from_user.id in config.ALLOWED_USERS
+    return uid in config.ALLOWED_USERS
 
 
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     if not is_allowed(message):
-        return await message.answer("Нет доступа.")
+        return await message.answer("Нет доступа. Используйте /register или /login для входа.")
     await message.answer(
         "<b>TikTok Subscribe Bot</b>\n\n"
         "Команды:\n"
@@ -41,6 +46,9 @@ async def cmd_start(message: Message):
         "/list — список аккаунтов\n"
         "/remove — удалить аккаунт\n"
         "/sub &lt;ссылка&gt; — подписка всеми аккаунтами\n"
+        "/register &lt;email&gt; &lt;пароль&gt; — регистрация\n"
+        "/login &lt;email&gt; &lt;пароль&gt; — вход\n"
+        "/logout — выход\n"
         "/help — справка"
     )
 
@@ -62,6 +70,46 @@ async def cmd_help(message: Message):
         "<b>Пример:</b>\n"
         '[{"name":"sessionid","value":"abc123","domain":".tiktok.com","path":"/"},...]'
     )
+
+
+@router.message(Command("register"))
+async def cmd_register(message: Message):
+    parts = message.text.split(maxsplit=2)
+    if len(parts) < 3:
+        return await message.answer("Формат: /register email пароль\nПример: /register user@mail.ru mypass123")
+    email = parts[1].strip()
+    password = parts[2].strip()
+    ok, msg = db.register_user(email, password, message.from_user.id)
+    if ok:
+        LOGGED_IN_USERS.add(message.from_user.id)
+        await message.answer(f"✅ {msg}\nДобро пожаловать!")
+    else:
+        await message.answer(f"❌ {msg}")
+
+
+@router.message(Command("login"))
+async def cmd_login(message: Message):
+    parts = message.text.split(maxsplit=2)
+    if len(parts) < 3:
+        return await message.answer("Формат: /login email пароль\nПример: /login user@mail.ru mypass123")
+    email = parts[1].strip()
+    password = parts[2].strip()
+    user = db.login_user(email, password)
+    if user:
+        LOGGED_IN_USERS.add(message.from_user.id)
+        await message.answer(f"✅ Вход выполнен! Добро пожаловать, <code>{user['email']}</code>")
+    else:
+        await message.answer("❌ Неверный email или пароль")
+
+
+@router.message(Command("logout"))
+async def cmd_logout(message: Message):
+    uid = message.from_user.id
+    if uid in LOGGED_IN_USERS:
+        LOGGED_IN_USERS.discard(uid)
+        await message.answer("✅ Вы вышли из аккаунта.")
+    else:
+        await message.answer("Вы не были в системе.")
 
 
 @router.message(Command("add"))
