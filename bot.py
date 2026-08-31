@@ -184,6 +184,9 @@ async def on_message(message: Message):
     if not state:
         return
 
+    if message.text and message.text.startswith("/"):
+        return
+
     if state["step"] == "username":
         username = message.text.strip().lstrip("@")
         if not username:
